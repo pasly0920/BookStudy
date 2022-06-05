@@ -20,6 +20,49 @@ TS란 결국 JS의 런타임 동작을 모델링하는 타입 시스템을 가�
 
 ## 2. 타입스크립트 설정 이해하기
 
+TS는 다양한 조작가능한 설정들이 가능하고 이러한 설정들의 여부에 따라서 실제 코드에 많은 영향을 주게 됩니다. 이러한 TS 설정들을 커맨드를 통해서 사용해도 무관하나 대개는 tsconfig.json이라는 설정파일을 만들어서 관리하는 것을 권장합니다. 이는 tsc --init을 통해서 생성가능하며 이러한 설정파일을 사용함으로써 프로젝트에 적용중인 TS 설정들을 빠르게 확인할 수 있고 이를 동료나 검토하는 사람에게 쉽게 공유할 수 있습니다.
+
+```json
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx"
+  },
+  "include": ["src"]
+}
+```
+
+상기는 실제 TS 설정 파일 예시입니다. TS의 설정에는 실제 코드에 영향을 미치는 설정들이 있다고 말했고 이러한 설정 중에서 가장 중요한 것이 noImplicitAny strictNullChecks입니다.
+
+먼저 noImplicitAny란 무엇인가에 대해서 알아보면, 타입스크립트 내에서 모든 변수들은 타입값을 가집니다. TS 프로그램을 짜는 프로그래머가 명시적으로 타입을 작성하던지 또는 TS가 타입을 any 또는 초기값을 통해 추론하든지 어떠한 타입을 가지게 됩니다. 이 중에서 any는 어떠한 타입으로도 사용될 수 있다는 의미로 이러한 any를 남용한다면 TS는 그 의미를 잃게 되며 더 나아가 any를 활용한 부분이 나머지 부분에 영향을 끼칠 수 도 있으므로 지양해야 합니다. 앞서 말한 TS가 any로 추론한 것을 암묵적 추론이라고 하며 이에 따른 암묵적 any를 금지하도록 하는 것이 noImplicitAny이며 TS를 제대로 사용하고자 한다면 해당 설정을 사용하는 것이 좋습니다. 해당 설정을 사용한 한 후에는 암묵적 Any가 에러를 발생하므로 명시적으로 any를 지정해주거나 더 좋은 것은 적절한 타입을 지정해주는 것이 좋습니다.
+
+strictNullChecks는 모든 타입에서 null과 undefined가 허용되는지에 관한 설정입니다. 이 설정을 허용하기 전까지는 null, undefined가 모든 타입에 선언이 가능합니다.
+
+```typescript
+const str: number = null;
+```
+
+하지만 이 설정을 사용한 후로는 위와 같은 일을 하고 싶다면 명시적으로 표시해야 합니다.
+
+```typescript
+const str: number | null = null;
+```
+
+이러한 null, undefined 설정에 대한 엄격한 설정을 프로그램을 짜는 것에는 도움을 주지만 TS를 처음 도입하는 사람에게는 어렵게 느껴질 수 있기에 초심자는 이 설정을 사용하지 않고 진행해도 괜찮겠지만 이는 "undefined는 객체가 아닙니다"라는 끔찍한 오류를 경험하게 할 수 있기에 조심할 필요가 있습니다. 이러한 TS의 설정들을 전부 적용하고 싶다면 strict 설정을 도입할 필요가 있고 추가적으로 동료와 TS로 협업을 하면서 서로 다른 오류가 발생한다면 TS 설정을 확인하는 것이 도움이 될 수 있겠습니다.
+
 ## 3. 코드 생성과 타입은 관계가 없다
 
 ## 4. 구조적 타이핑(Duck Typing) 익숙해지기
