@@ -108,4 +108,30 @@ TS의 타입 연산자는 JS로의 변환에서 제거되기 떄문에 런타임
 
 ## 4. 구조적 타이핑(Duck Typing) 익숙해지기
 
+JS는 기본적으로 덕 타이핑 기반이다. 함수의 매개변수 값들이 제대로 주어진다면 그 값이 어떻게 만들어졌는지는 신경쓰지 않고 사용합니다. 이러한 구조적 타이핑과 타입스크립트의 영리함 덕분에 이러한 일도 가능합니다.
+
+```typscript
+  interface Vector2D{
+    x: number;
+    y: number;
+  }
+
+  function calculateLength(v: Vector2D){
+    return Math,sqrt(v.x*v.x + v.y*v.y);
+  }
+
+  interface NamedVector{
+    name: string;
+    x: number;
+    y: number;
+  }
+
+  const v: NamedVector = {x: 3, y:4, name : 'Zee'};
+  calculateLength(v);
+```
+
+분명히 저희는 vector2d에 대해서만 이를 선언했는데 NameVector에 대해서도 정상적으로 작동하는 모습을 볼 수 있습니다. 또한 NamedVetor를 위한 별도의 CalculateLength를 구현하는 일 또한 필요하지 않습니다. 여기서 구조적 타이핑이 사용됩니다. 하지만 이러한 구조적 타이핑이 문제를 불러오기도 합니다. 이러한 타입 간 호환관계는 대개 정상적으로 작동하지만 유사한 형태의 타입이 있을 경우 원하지 않는 방식으로 작동하기도 합니다.(내가 원하지 않는 타입과의 호환) 이를 두고 좋든 싫든 타입은 열려 있다고 합니다. 이는 즉 타입은 확장에 열려 있다는 뜻입니다.
+
+이러하 특징이 유닛 테스트를 손쉽게 만들어주고 이는 다음에 다루도록 하겠습니다.
+
 ## 5. any 타입 지양하기
