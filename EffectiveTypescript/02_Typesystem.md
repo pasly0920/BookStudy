@@ -132,6 +132,42 @@ interface PersonSpan extends Person {
 
 ## 8. 타입 공간과 값의 심벌 구분하기
 
+TS의 심벌은 타입 공간이나 값 공간 중의 한 곳에 존재합니다. 심벌은 이름이 같더라도 속하는 공간에 따라 다른 것을 나타내기에 혼란스러울 수 있습니다.
+
+```typescript
+interface Cylinder {
+  radius: number;
+  height: number;
+}
+
+const Cylinder = (radius: number, height: number) => ({ radius, height });
+```
+
+interface Cylinder에서 Cylinder는 타입으로 쓰입니다. const Cylinder에서 Cylinder와 이름은 같지만 값으로 쓰이며 서로 아무런 연관이 없습니다. 상황에 따라서 Cylinder는 타입으로 쓰일 수도 값으로 쓰일 수도 있으며 이런 점은 가끔 오류를 야기합니다. 컴퓨터 뿐만 아니라 사람이 보았을 때도 그렇습니다.
+
+한 심벌이 타입인지 값인지는 언뜻 봐서 알 수 없습니다. 어떤 형태로 쓰이는 지 문맥을 살펴보아야 합니다. 많은 타입 코드가 값 코드와 비슷해 보이기 때문에 더더욱 혼란스럽습니다. 이 두 공간에 대한 개념을 제대로 잡으려면 TS Playground를 사용해 보면 됩니다.
+
+한편 연산자 중에서 타입에서 쓰일 때와 값에서 쓰일 때 다른 기능을 하는 것들이 있습니다. 그 예 중 하나로 typeof를 들 수 있습니다.
+
+```typescript
+type T1 = typeof p; // 타입은 Person
+type T2 = typeof email;
+// 타입은 (p: Person, subject: string, body: string) => Response
+
+const v1 = typeof p; // 값은 "object"
+const v2 = typeof email; // 값은 "function"
+```
+
+타입의 관점에서 typeof는 값을 읽어서 TS타입을 반환합니다. 타입 공간의 typeof는 보다 큰 타입의 일부분으로 사용할 수 있고, type 구문으로 이름을 붙이는 용도로도 사용할 수 있습니다.
+
+값의 관점에서 typeof는 JS 런타임의 typeof 연산자가 됩니다. 값공간의 typeof는 대상 심벌의 런타임 타입을 가리키는 문자열 반환하며 TS의 타입과는 다릅니다. JS의 런타임 타입 시스템은 TS의 타입 시스템과 다릅니다. JS의 런타임 타입 시스템은 TS의 정적 타입 시스템보다 훨씬 간단합니다. TS의 타입은 종류가 무수히 많은 반면, JS에는 과거부터 지금까지 단 6개(string, number, boolean, undefined, object, function)의 런타임 타입만이 존재합니다. TS에서 코드가 잘 동작하지 않는다면 앞선 타입 시스템에 대한 인지 부족으로 타입 공간과 값 공간을 혼동했을 가능성이 큽니다.
+
+간단 요약
+
+- TS 코드를 읽을 때, 타입인지 값인지 구분하는 방법을 터득해야 합니다. 타입스크립트 플레이그라운드를 활용해 개념을 잡는 것이 좋습니다.
+
+- 모든 값은 타입을 가지지만, 타입은 값을 가지지 않습니다. Type과 interface 같은 키워드들은 타입 공간에만 존재합니다.
+
 ## 9. 타입 단언보다는 타입 선언 사용하기
 
 ## 10. 객체 래퍼 타입 피하기
@@ -148,6 +184,6 @@ interface PersonSpan extends Person {
 
 ## 16. number 인덱스 시그니처보다는 Array, 튜플, ArrayLike를 사용하기
 
-## 17. 변경 관렫된 오류 방지를 위해 readonly를 사용하기
+## 17. 변경 관련된 오류 방지를 위해 readonly를 사용하기
 
 ## 18. 매핑된 타입을 사용하여 값을 동기화하기
