@@ -249,6 +249,64 @@ const el = document.getElementyById("foo")!; // HTMLElement
 
 ## 10. 객체 래퍼 타입 피하기
 
+이 부분은 개인적으로 중요하다고 생각하는 부분중 하나입니다. 동작을 이해하는 데 있어서 중요한 부분이라고 생각됩니다.
+
+JS에는 객체 이외에도 기본형 값들에 대한 일곱 가지 타입(string, number, boolean, null, undefined, symbol, bigint)이 있습니다. string, nubmer, boolean, null은 초창기부터 존재해왔으며, symbol은 ES2015에서 추가되었으며 bigint는 최종 확정 단계에 있습니다.
+
+기본형들은 불변이며 메서드를 가지지 않는다는 점에서 객체와 구분됩니다. 그런데 기본형인 string의 경우에 메서드를 가지고 있는 것처럼 보입니다.
+
+```typescript
+"primitive".charAt(3);
+("m");
+```
+
+하지만 사실 charAt은 string의 메서드가 아니며 string을 사용할 때, 자바스크립트 내부에서 많은 동작이 일어납니다. string '기본형' 에는 메서드가 없습니다만, JS에서 메서드를 가지는 String '객체' 타입이 정의되어 있습니다. JS에서 기본형과 객체 타입을 서로 자유롭게 변환합니다. string 기본형에 charAt 같은 메서드를 사용할 때, JS는 기본형을 String 객체로 wrapping하고 메서드를 호출하고, 마지막에 래핑한 객체를 버립니다.
+
+상기의 String 객체를 직접 생성할 수도 있으며, 이 또한 string 기본형처럼 동작합니다. 그러나 string 객체와 String 객체 래퍼가 항상 동일하게 동작하는 것은 아닙니다. 예를 들어 String 객체는 오직 자기 자신하고만 동일합니다.
+
+```typescript
+  "hello" === new String("hello");
+  >false
+  new String === new String("hello");
+  >false
+```
+
+객체 래퍼 타입의 자동 변환은 종종 당황스러운 동작을 보일 때가 있습니다. 예를 들어 어떤 속성을 기본형에 할당한다면 그 속성이 사라집니다.
+
+```typescript
+x = "hello";
+x.language = "English";
+
+x.language > undefined;
+```
+
+실제로 작동하는 바는 x가 String 객체로 변환된 후 language 속성이 추가되었고, language 속성이 추가되었고, language 속성이 추가된 객체는 버려진 것입니다.
+다른 기본형에도 동일하게 객체 래퍼가 존재합니다. number에는 Number, boolean에는 Boolean, .... 등등 대문자로 바뀌어진 객체 래퍼 타입이 존재합니다. (null과 undefined에는 객체 래퍼가 없습니다) 이 래퍼 타입들 덕분에 기본형 값에 메서드를 사용할 수 있고, 정적 메서드(String.fromCharCode 같은)도 사용할 수 있습니다. 그러나 보통은 래퍼 객체를 직접 생성할 필요가 없습니다.
+
+TS에서는 기본형과 객체 래퍼 타입을 모델링합니다.
+
+- string과 String
+
+- number과 Number
+
+- boolean과 Boolean
+
+- symbol과 Symbol
+
+- bigint와 BigInt
+
+그러나 string을 사용할 때는 특히 유의해야 합니다. string을 String이라고 잘못 타이핑하기 쉽고, 실수를 하더라도 처음에는 잘 동작하는 것처럼 보이기 떄문입니다.
+
+그러나 string을 매개변수로 받는 메서드에 String 객체를 전달하는 순간 문제가 발생합니다.
+대부분의 라이브러리와 마찬가지로 TS가 제공하는 타입 선언은 전부 기본형 타입으로 되어 있습니다.
+당연히 런타임의 값은 객체가 아니고 기본형입니다. 그러나 기본형 타입은 객체 래퍼에 할당할 수 있기 때문에 TS는 기본형 타입을 객체 래퍼에 할당하는 선언을 허용합니다. 그러나 기본형 타입을 객체 래퍼에 할당하는 구문은 오해하기 쉽고, 굳이 그렇게 할 필요도 없습니다. 그냥 기본형 타입을 사용하는 것이 좋습니다.
+
+요약
+
+- 기본형 값에 메서드를 제공하기 위해 객체 래퍼 타입이 어떻게 쓰이는지 이해해야 하며, 직접 사용하거나 인스턴스를 생성하는 것을 피해야 합니다.
+
+- TS 객체 래퍼 타입은 지양하고, 대신 기본형 타입을 사용해야 합니다. String 대신 string, Number 대신 number, Boolean 대신 boolean 등등 기본형 타입을 사용해야 합니다.
+
 ## 11. 잉여 속성 체크의 한계 인지하기
 
 ## 12. 함수 표현식에 타입 적용하기
