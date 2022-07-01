@@ -309,6 +309,87 @@ TS에서는 기본형과 객체 래퍼 타입을 모델링합니다.
 
 ## 11. 잉여 속성 체크의 한계 인지하기
 
+타입이 명시된 변수에 객체 리터럴을 할당할 때, TS는 해당 타입의 속성은 있는지, 그리고 **그 외의 속성은 없는지** 확인합니다.
+
+```typescript
+interface Room {
+  numDoors: number;
+  ceilingHeightFt: number;
+}
+const r: Room = {
+  numDoors: 1,
+  ceilingHeightFt: 10,
+  elephant: "present",
+  // ~~~ 개체 리터럴은 알려진 속성만 지정할 수 있으며, 'Room' 형식에 'elephant'이(가) 없습니다.
+};
+```
+
+Room 타입에 생뚱맞게 elephant 속성이 있는 것은 어색하긴 하지만, 구조적 타이핑 관점으로 생각해보면 오류가 발생하지 않아야 합니다. 임시 변수를 도입해 보면 알 수 있는데, obj 객체는 Room 타입에 할당이 가능합니다.
+
+```typescript
+const obj = {
+  numDoors: 1,
+  ceilingHeightFt: 10,
+  elephant: "present",
+};
+const r: Room = obj; // 정상
+```
+
+이 때 obj의 타입은 { numDoors: number, ceilingHeightFt: number; elephant: string }으로 추론됩니다. obj 타입은 Room 타입의 부분집합을 포함하므로, Room에 할당 가능하며 타입 체커도 통과합니다.
+
+앞의 두 예제의 차이점을 살펴보겠습니다. 위의 첫 번째 예제의 경우 구조적 타입 시스템에서 발생할 수 있는 중요한 종류의 오류를 잡을 수 있도록 '잉여 속성의 체크'라는 과정이 수행되었습니다. 그러나 잉여 속성 체크 역시 조건에 따라 동작하지 않는다는 한계가 있습니다.
+
+TS는 단순히 런타임에 예외를 던지는 코드에 오류를 표시하는 것뿐 아니라, 의도와 다르게 작성된 코드까지 찾으려고 합니다. 다음에 그 예제가 있습니다.
+
+```typescript
+interface Options {
+  title: string;
+  darkMode?: boolean;
+}
+
+function createWindow(options: Options) {
+  if (options.darkMode) {
+    setDarkMode();
+  }
+}
+
+createWindow({
+  title: "Spider Solitaire",
+  darkmode: true,
+
+  /// 개체 리터럴은 알려진 속성만 지정할 수 있지만 'Options' 형식에 'darkmode'가 없습니다.
+  //'darkMode'를 쓰려고 했습니까?
+});
+```
+
+상기의 코드는 런타임에 어떠한 종류의 오류도 발생시키지 않습니다. 그러나 타입스크립트가 알려주는 오류메시지처럼 의도한 대로 동작하지 않을 수 있습니다. 앞선 구조적 타이핑과 관련한 내용들을 통해 Options는 굉장히 범위가 넓다는 사실을 알 수 있습니다. darkMode에 boolean 속성을 가지며 string 타입인 title속성과 '또 다른 어떤 속성'을 가지는 모든 객체는 Options의 범위에 속합니다.
+
+고로 순수한 구조적 타입 체커로는 이런 위와 같은 종류의 오류를 잡아낼 수 없습니다. 잉여 속성 체크를 이용하면 기본적으로 타입 시스템의 구조적 본질을 해치지 않으면서 객체 리터럴에 알 수 없는 속성을 허용하지 않음으로써 앞에서 다룬 Room이나 Options 예제 같은 문제점을 방지할 수 있습니다.
+
+그러나 객체 리터럴이 아닌 경우에는 잉여 속성 체크가 작동하지 않으며, 타입 단언의 경우에도 작동하지 않습니다.
+
+```typescript
+const o: Options = { darkmode: true, title: "Ski Free" };
+//~~~~~~ 'Options' 형식에 'darkmode'가 없습니다.
+
+const intermediate = { darkmode: true, title: "Ski Free" }; // 객체 리터럴 O
+const o: Options = intermediate; // 정상 객체 리터럴 X
+
+const o: Options = { darkmode: true, title: "Ski Free" } as Options; //정상 타입 단언
+```
+
+타입 단언보다는 선언을 사용해야할 단적인 이유 중 하나입니다.
+
+잉여 속성 체크는 구조적 타이핑 시스템에서 허용되는 속성 이름의 오타 같은 실수를 잡는데 효과적인 방법입니다. 오직 객체 리터럴에만 적용되지만 이런 한계점을 인지하고 잉여 속성 체크와 일반 타입 체크를 구분한다면, 두 가지 모두의 개념을 잡는데 도움이 될 것입니다.
+
+간단 요약
+
+- 객체 리터럴을 변수에 할당하거나 함수에 매개변수로 전달할 떄, 잉여 속성 체크가 수행됩니다.
+
+- 잉여 속성 체크는 오류를 찾는 효과적인 방법이지만 TS 타입 체커가 수행하는 일반적인 구조적 할당 가능성 체크와 역할이 다릅니다. 할당의 개념을 정확히 알아야 잉여 속성 체크와 **일반적인 구조적 할당 가능성 체크**를 구분할 수 있습니다.
+
+- 잉여 속성 체크는 한계가 있습니다. 임시 변수를 도입하면 잉여 속성 체크를 건너뛸 수 있다는 점을 기억해야 합니다.
+
 ## 12. 함수 표현식에 타입 적용하기
 
 ## 13. 타입과 인터페이스의 차이점 알기
