@@ -392,6 +392,58 @@ const o: Options = { darkmode: true, title: "Ski Free" } as Options; //정상 �
 
 ## 12. 함수 표현식에 타입 적용하기
 
+JS(TS)에서는 함수 statement와 expression을 다르게 인식합니다.
+
+```typescript
+function rollDice1(sides: number) : number { ... }; // statement
+const rollDice2 = function(sides: number) : number { ... }; //expression
+const rollDice3 = (sides: number) : number =>  { ... }; // expression
+
+type DiceRollFn = (sides: number) => number;
+const rollDice: DiceRollFn = sides => { ... };
+```
+
+TS에서는 함수 expression을 사용하는 편이 좋습니다. 함수의 매개변수부터 반환값까지 전체를 함수 타입으로 선언하여 함수 표현식에 재사용할 수 있는 장점이 있기 때문입니다.
+
+예시가 간단하여 함수 타입의 장점이 덜 느껴질 수도 있습니다. 더 자세한 예시를 살펴보겠습니다.
+
+함수 타입의 선언은 불필요한 코드의 반복을 줄입니다. 반복되는 함수 시그니처를 하나의 함수 타입으로 통일하여 재사용성을 증가시킵니다.
+
+```typescript
+function add (a: number, b: number) { return a + b };
+function minus (a: number, b: number) { return a - b };
+..
+..
+..
+
+type BinaryFn = (a: number, b: number ) => number
+```
+
+라이브러리는 공통 함수 시그니처를 타입으로 제공하기도 합니다. 예를 들어 React는 함수의 매개변수에 명시하는 MouseEvent 타입 대신 함수 전체에 적용할 수 있는 MouseEventHandler 타입을 제공합니다. 만약 라이브러리를 직접 만드는 입장이라면 공통 콜백 함수를 위한 타입 선언을 제공하는 것이 좋습니다.
+
+자주 사용되는 fetch에 대해서 생각해봅시다. fetch에 대해서 우리는 json형식의 return을 받기를 기대하지만 이러한 기대는 언제나 깨질 수 있습니다. 존재하지 않는 API에 대한 호출이라면 응답은 JSON형식이 아닐 수 있습니다. 또한 fetch가 실패하면 거절된 프로미스를 응답하지 않는다는 점 역시 간과하기 쉽습니다. 이를 개선하여 checkedFetch를 통해 fetch 성공 여부에 따른 분기를 나눠보도록 하겠습니다.
+
+```typescript
+declare function fetch(
+  input: RequestInfo, init?: RequestInit
+); Promise<Response>
+
+const checkedFetch: typeof fetch = async(input, init) => {
+  const response = await fetch(input, init);
+  if(!response.ok)
+    throw new Error('Request failed: ' + response.status );
+  return response;
+}
+```
+
+간단 요약
+
+- 매개변수나 반환 값에 타입을 명시하기보다는 함수 표현식 전체에 타입 구문을 적용하는 것이 좋습니다.
+
+- 만약 같은 타입 시그니처를 반복적으로 작성한 코드가 있다면 함수 타입을 분리해내거나 이미 존재하는 타입을 찾아보도록 합시다. 라이브러리를 직접 만든다면 공통 콜백에 타입을 제공해야 합니다.
+
+- 다른 함수의 시그니처를 참조하려면 typeof fn를 사용하면 됩니다.
+
 ## 13. 타입과 인터페이스의 차이점 알기
 
 ## 14. 타입 연산과 제너릭 사용으로 반복 줄이기
