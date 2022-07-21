@@ -587,6 +587,204 @@ TS는 여러 버전의 JS 표준 라이브러리에서 여러 타입을 모아 �
 
 ## 14. 타입 연산과 제너릭 사용으로 반복 줄이기
 
+다음은 원기둥의 반지름, 높이, 표면적, 부피를 출력하는 코드입니다.
+
+```typescript
+console.log('Cylinder 1 x 1',
+  'Surface area: ', 6.283185 * 1 * 1+ .....
+)
+```
+
+위와 같은 방식으로 여러 번 반복하는 것은 잠재적으로 오류를 늘릴 뿐만 아니라 가독성이 떨아집니다. 위와 같은 코드를 개선해보겠습니다.
+
+```typescript
+const surfaceArea = (r, h) => 2* Math.PI * r * (r + h);
+const volume = (r, h) = > Math.PI  * r * r * h;
+for(const [r, h] of [[1, 1], [1, 2], [2, 1]]){
+  console.log(
+    `Cylinder ${r} x ${h}`
+    `Surface area: ${surfaceArea(r, h)}`,
+    ...
+  )
+}
+```
+
+이러한 일은 DRY(Don't Repear Yourself) 원칙을 준수하는 일이기도 하며 이는 소프트웨어 개발자는 모두 들어봤을 일이라고 생각합니다. 하지만 이런 DRY 원칙을 준수하는 개발자라고 하더라도 타입에 대해서는 간과했을지도 모릅니다.
+
+```typescript
+interface Person {
+  firstName: string;
+  lastName: string;
+}
+
+interface PersonWithBirthDate {
+  firstName: string;
+  lastName: string;
+  birthDate: Date;
+}
+
+interface PersonWithBirthDate extends Person {
+  birthDate: Date;
+}
+```
+
+타입 중복은 코드 중복만큼 많은 문제를 일으킵니다. 당장 위의 예재를 살펴보면 우리가 Person에 middleName을 추가했을 때 Person과 PersonWithBirthDate는 우리가 생각하는 것과 완전히 다른 관계가 되어버립니다. 타입에서 중복이 더 흔한 이유는 기존 코드에서 타입 중복을 제거하기 위해서 하는 일에 대해 타입에 대해서는 이러한 일들이 익숙치 않기 때문입니다. 위의 에제에서 해당 문제는 한 인터페이스가 다른 인터페이스를 확장하도록 함으로써 해결이 가능합니다. 위와 같은 동작을 통해서 공통 필드만 골라서 기반 클래스로 분리해낼 수 있습니다.
+
+이미 존재하는 타입을 확장하는 경우에 일반적으로 사용되지는 않지만 인터섹션 연산자를 추가할 수 있습니다. 이런 기법은 유니온 타입(확장할 수 없는 속성)에 속성을 추가하려고 할 떄 특히 유용합니다.
+
+```typescript
+type PersonWithBirthDate = Person & { birth: Date };
+```
+
+이제 다른 측면을 생각해보겠습니다. 전체 애플리케이션의 상태를 나타내는 State 타입과 단지 부분만 표현하는 TopNavState가 있는 경우를 살펴보겠습니다.
+
+```typescript
+interface State {
+  userId: string;
+  pageTitle: string;
+  recentFiles: string[];
+  pageContents: string;
+}
+
+interface TopNavState {
+  userId: string;
+  pageTitle: string;
+  recentFiles: string[];
+}
+```
+
+TopNavState를 확장하여 State를 구성하기 보다는 State의 부분 집합으로 TopNavState를 정의하는 것이 바람직해 보입니다. 이 방법이 전체 앱의 상태를 하나의 인터페이스로 유지할 수 있게 해줍니다.
+
+State를 인덱싱하여 속성의 타입에서 중복을 제거할 수 있습니다.
+
+```typescript
+type TopNavState = {
+  userId: State["userId"];
+  pageTitle: State["pageTitle"];
+  recentFiles: State["recentFiles"];
+};
+
+type TopNavState = {
+  [k in "userId" | "pageTitle" | "recentFiles"]: State[k];
+};
+
+type Pick<T, K> = { [k in K]: T[k] };
+
+type TopNavState = Pick<State, "userId" | "pageTitle" | "recentFiles">;
+```
+
+위 두개의 type 식은 둘 다 동일한 결과를 가집니다. 다만 위 쪽의 방법은 여전히 반복되는 요소를 가지고 있기에 아래의 방법을 통해 좀 더 간결하게 표시할 수 있습니다. 매핑된 타입은 배열의 필드를 루프 도는 것과 같은 방식으로 이 패턴은 표준 라이브러리에서도 찾을 수 있으며, Pick이라고 합니다.
+
+여기서 Pick은 제너릭 타입입니다. Pick을 사용하는 것은 타입에 대한 함수를 호출하는 것과 마찬가지입니다.
+
+한편 생성하고 난 후에 업데이트가 되는 클래스를 정의한다면 update 메서드 매개변수의 타입은 생성자와 동일한 매개변수이면서, 타입 대부분이 선택적 필드가 됩니다.
+
+```typescript
+interface Options {
+  width: number;
+  height: number;
+  color: string;
+  label: string;
+}
+
+interface OptionsUpdate {
+  width?: number;
+  height?: number;
+  color?: string;
+  label?: string;
+}
+
+type OptionsUpdate = { [k in keyof Options]?: Options[k] };
+// 위 아래의 식은 동일
+type OptionsUpdate = Partial<Options>;
+
+type OptionsKeys = keyof Options;
+// 타입이 "width" | "height" | "color" | "label"
+```
+
+위와 같이 모든 프로퍼티들을 반복해서 적지 않고 매핑된 타입과 keyof를 적절히 활용하면 Options으로부터 OptionsUpdate를 만들 수 있습니다. keyof는 타입을 받아서 속성 타입의 유니온을 반환합니다.
+
+위의 OptionsUpdate 같은 패턴 역시 아주 일반적이며 표준 라이브러리에 Partial이라는 이름으로 포함되어 있습니다.
+
+가끔은 값의 형태에 해당하는 타입을 정의하고 싶을 때도 있습니다. 이럴 경우 typeof를 사용하면 됩니다.
+
+```typescript
+const INIT_OPTIONS = {
+  width: 640,
+  height: 480,
+  color: "#00FF00",
+  label: "VGA",
+};
+interface Options {
+  width: number;
+  height: number;
+  color: string;
+  label: string;
+}
+
+type Options = typeof INIT_OPTIONS;
+```
+
+이 코드를 JS의 런타임 연산자 typeof를 사용한 것처럼 보이지만, 실제로는 TS 단계에서 연산되며 훨씬 더 정확하게 타입을 표협합니다. 그런데 값으로부터 타입을 만들어 낼때는 선언의 순서에 주의해야 합니다. 타입 정의를 먼저 하고 값이 그 타입에 할당 가능하다고 선언하는 것이 좋습니다. 그렇게 해야 타입이 더 명확해지고, 예상하기 어려운 타입 변동을 방지할 수 있습니다.
+
+함수나 메서드의 반환 값에 명명된 타입을 만들고 싶을 수도 있습니다.
+
+```typescript
+const getUserInfo = (userId: string) => {
+  // ...
+  return {
+    userId,
+    name,
+    age,
+    height,
+    ....
+  }
+}
+// 추론된 반환 타입은 { userId: string; name: string; age: number; ...}
+
+type UserInfo = ReturnType<typeof getUserInfo>;
+```
+
+표준 라이브러리 타입에는 이러한 일반적인 패턴의 제너릭 타입이 정의되어 있습니다. ReturnType은 함수의 '값'인 getUserInfo가 아니라 함수의 '타입'인 typeof getUserInfo에 적용되었습니다. typeof와 마찬가지로 이런 기법은 신주중하게 적용되어야 합니다. 적용대상이 값인지 타입인지 정확히 알고, 구분해서 처리해야 합니다.
+
+제너릭 타입은 타입을 위한 함수와 같습니다. 그리고 함수는 코드에 대한 DRY 원칙을 지킬 때 유용하게 사용됩니다.따라서 타입에 대한 DRY 원칙의 핵심은 제너릭이라는 것이 어쩌면 당연해 보이는데, 간과한 부분이 있습니다. 함수에서 매개변수로 매핑할 수 있는 값을 제한하기 위해 타입 시스템을 사용하는 것처럼 제너릭 타입에서 매개변수를 제한할 수 있는 방법이 필요합니다.
+
+제너릭 타입에서 매개변수를 제한할 수 있는 방법은 extends를 사용하는 것입니다. extends를 이용하면 제너릭 매개변수가 특정 타입을 확장한다고 선언할 수 있습니다.
+
+```typescript
+interface Name {
+  first: string;
+  last: string;
+}
+type DancingDuo<T extends Name> = [T, T];
+
+const couple1: DancingDuo<Name> = [
+  {first: 'Fred', last: 'Astaire'},
+  {first: 'Ginger', last: 'Rogers'}
+]// OK
+
+const couple2: DancingDuo<{first: string}> = [
+  {first: 'Sonny'};
+  {first: 'Cher'};
+]
+```
+
+{first: string}은 Name을 확장하지 않기 때문에 오류가 발생합니다. 앞선 타입(아이템 7)을 살펴보면 타입이 집합이라는 관점에서 extends를 확장이 아니라 부분 집합이라는 걸 이하하는데 도움이 될 겁니다.
+
+점점 더 추상적인 타입을 다루고 있지만, 원래의 목표를 잊으면 안 됩니다. 원래의 목표는 값 공간에서와 마찬가지로 반복적인 코드는 타입 공간에서도 좋지 않습니다. 타입 공간에서 반복을 줄이려는 작업들은 프로그램 로직에서 하던 작업만큼 익숙하지 않겠지만 배울 만한 가치가 있습니다. 반복하지 않도록 주의합시다.
+
+요약
+
+- DRY 원칙을 타입에도 최대한 적용해야 합니다.
+
+- 타입에도 이름을 붙여서 반복을 피해야 합니다. extends를 사용하여 인터페이스 필드의 반복을 피해야 합니다.
+
+- 타입들 간의 매핑을 위해 타입스크립트가 제공한 도구들은 공부하면 좋습니다. 여기에는 keyof, typeof, 인덱싱, 매핑된 타입들이 포함됩니다.
+
+- 제너릭 타입은 타입을 위한 함수와 같습니다. 타입을 반복하는 대신 제너릭 타입을 사용하여 타입들 간에 매핑을 하는 것이 좋습니다. 제너릭 타입을 제한하려면 extends를 사용하면 됩니다.
+
+- 표준 라이브러리에 정의된 Pick, Partial, ReturnType 같은 제너릭에 익숙해져야 합니다.
+
 ## 15. 동적 데이터에 인덱스 시그니처 사용하기
 
 ## 16. number 인덱스 시그니처보다는 Array, 튜플, ArrayLike를 사용하기
